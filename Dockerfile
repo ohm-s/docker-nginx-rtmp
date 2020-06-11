@@ -52,6 +52,7 @@ RUN cd /tmp/nginx-${NGINX_VERSION} && \
   --with-cc-opt="-Wimplicit-fallthrough=0" && \
   cd /tmp/nginx-${NGINX_VERSION} && make && make install
 
+RUN ls /usr/local
 ###############################
 # Build the FFmpeg-build image.
 FROM alpine:3.11 as build-ffmpeg
@@ -121,6 +122,7 @@ RUN cd /tmp/ffmpeg-${FFMPEG_VERSION} && \
 # Cleanup.
 RUN rm -rf /var/cache/* /tmp/*
 
+
 ##########################
 # Build the release image.
 FROM alpine:3.11
@@ -153,7 +155,7 @@ COPY --from=build-nginx /usr/local/nginx /usr/local/nginx
 COPY --from=build-nginx /etc/nginx /etc/nginx
 COPY --from=build-ffmpeg /usr/local /usr/local
 COPY --from=build-ffmpeg /usr/lib/libfdk-aac.so.2 /usr/lib/libfdk-aac.so.2
-
+COPY  stat.xsl /opt/nginx/conf/stat.xsl
 # Add NGINX path, config and static files.
 ENV PATH "${PATH}:/usr/local/nginx/sbin"
 ADD nginx.conf /etc/nginx/nginx.conf.template
@@ -163,6 +165,8 @@ ADD static /www/static
 EXPOSE 1935
 EXPOSE 80
 
-CMD envsubst "$(env | sed -e 's/=.*//' -e 's/^/\$/g')" < \
-  /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && \
-  nginx
+ 
+RUN rm /etc/nginx/nginx.conf
+ADD run.sh /
+
+CMD /run.sh
